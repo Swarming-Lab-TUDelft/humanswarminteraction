@@ -6,6 +6,7 @@ import tensorflow as tf
 import tensorflow_hub as hub
 import numpy as np
 import cv2
+from human_swarm_interaction_interfaces.msg import PoseKeypointsStamped, PoseKeypoint
 
 SKELETON_CONNECTIONS = [
     (5, 6),  # Shoulders
@@ -50,6 +51,7 @@ class PoseNetNode(Node):
             self.listner_callback,
             10)
         self.publisher = self.create_publisher(Image,  '/posenet/image_annotated', 10)
+        self.keypoints_publisher = self.create_publisher(PoseKeypointsStamped, '/posenet/keypoints', 10)
         self.model = hub.load('https://tfhub.dev/google/movenet/singlepose/lightning/4')
         self.movenet = self.model.signatures['serving_default']
         self.input_size = 192
@@ -58,8 +60,11 @@ class PoseNetNode(Node):
     def listner_callback(self, msg):
         cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='rgb8')
         input_image = self.preprocess_image(cv_image)
-        keypoints = self.run_pose_estimation(input_image)
-        annotated_img = self.draw_keypoints(cv_image, keypoints)
+        all_keypoints = self.run_pose_estimation(input_image)
+        filtered_keypoints = self.filter_keypoints(all_keypoints)
+        self.publish_keypoints(filtered_keypoints)
+
+        annotated_img = self.draw_keypoints(cv_image, all_keypoints)
         annotated_msg = self.bridge.cv2_to_imgmsg(annotated_img, encoding='rgb8')
         self.publisher.publish(annotated_msg)
 
@@ -78,6 +83,13 @@ class PoseNetNode(Node):
         keypoints = outputs['output_0'].numpy()[0]  # Extract keypoints
         return keypoints
     
+    def filter_keypoints(self, keypoints, threshold=0.5):
+        valid_keypoints = []
+        for idx, (_, _, confidence) in enumerate(keypoints[0]):
+            if confidence < threshold:
+                continue
+            valid_keypoints.append(keypoints[0][idx])
+        return valid_keypoints
     
     def draw_keypoints(self, image, keypoints, threshold=0.5):
         """Draw keypoints and skeleton on the image."""
@@ -109,6 +121,25 @@ class PoseNetNode(Node):
                     cv2.line(image, valid_points[point1], valid_points[point2], (0, 255, 255), 6)
 
         return image
+
+    def publish_keypoints(self, keypoints):
+        # Do not publish if the list of keypoints is empty
+        if len(keypoints) == 0:
+            return
+
+        self.get_logger().info('Publishing %d keyponts...' % len(keypoints), throttle_duration_sec=5)
+        keypoints_msg = PoseKeypointsStamped()
+        keypoints_msg.header.frame_id = 'camera_frame'
+        keypoints_msg.header.stamp = self.get_clock().now().to_msg()
+
+        for idx, (y, x, _) in enumerate(keypoints):
+            keypoint = PoseKeypoint()
+            keypoint.name = KEYPOINT_LABELS[idx]
+            keypoint.x = float(x)
+            keypoint.y = float(y)
+            keypoints_msg.keypoints.append(keypoint)
+
+        self.keypoints_publisher.publish(keypoints_msg)
 
 def main(args=None):
     rclpy.init(args=args)
