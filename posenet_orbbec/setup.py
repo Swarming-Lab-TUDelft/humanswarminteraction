@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'posenet_node = posenet_orbbec.posenet_node:main',
         ],
     },
 )
