@@ -9,7 +9,7 @@
 using namespace HumanSwarmInteraction;
 
 SingleKeypointTrackerNode::SingleKeypointTrackerNode()
-: Node("single_keypoint_tracker_node")
+: Node("single_keypoint_tracking_node")
 {
   configureParameters();
   initializeLinearKalmanFilter();
@@ -82,6 +82,28 @@ void SingleKeypointTrackerNode::initializeLinearKalmanFilter()
   std::vector<double> process_noises = this->get_parameter("process_noises").as_double_array();
   std::vector<double> observation_noises = this->get_parameter("observation_noises").as_double_array();
 
+  // Check if the parameters are of the correct size
+  if (initial_state.size() != STATE_SIZE) {
+    throw std::invalid_argument("Initial state must have size 8. Current size: " 
+      + std::to_string(initial_state.size()));
+  }
+
+  if (covariances.size() != STATE_SIZE) {
+    throw std::invalid_argument("Covariances must have size 8. Current size: " 
+      + std::to_string(covariances.size()));
+  }
+
+  if (process_noises.size() != STATE_SIZE) {
+    throw std::invalid_argument("Process noises must have size 8. Current size: " 
+      + std::to_string(process_noises.size()));
+  }
+
+  if (observation_noises.size() != MEASUREMENT_SIZE) {
+    throw std::invalid_argument("Observation noises must have size 4. Current size: " 
+      + std::to_string(observation_noises.size()));
+  }
+
+  // Initialize the Kalman filter
   m_kalman_filter = std::make_unique<LinearKalmanFilter>(initial_state, covariances, process_noises, observation_noises);
 }
 

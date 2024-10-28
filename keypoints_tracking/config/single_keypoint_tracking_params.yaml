@@ -1,0 +1,17 @@
+single_keypoint_tracking_node:
+  ros__parameters:
+
+    input_keypoints_topic_name: "all_keypoints"
+    input_keypoints_topic_queue_size: 10
+
+    output_keypoints_topic_name: "filtered_keypoints"
+    output_keypoints_topic_queue_size: 10
+
+    keypoint_name: "right_wrist"
+    tracking_window_width: 5.0
+    tracking_window_height: 5.0
+
+    initial_state: [0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0]
+    covariances: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+    process_noises: [0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01, 0.01]
+    observation_noises: [0.1, 0.1, 0.1, 0.1]
