@@ -12,6 +12,7 @@ SingleKeypointTrackerNode::SingleKeypointTrackerNode()
 : Node("single_keypoint_tracker_node")
 {
   configureParameters();
+  initializeLinearKalmanFilter();
   initializeKeyPointsSubscriber();
   initializeKeyPointsPublisher();
   RCLCPP_INFO(get_logger(), "Single Keypoint Tracker Node initialized.");
@@ -25,9 +26,35 @@ SingleKeypointTrackerNode::~SingleKeypointTrackerNode()
 void SingleKeypointTrackerNode::keypointsCallback(
   const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg)
 {
+  m_last_msg_header = &(msg->header);
+
+  // try {
+  //   double x, y;
+  //   for (const auto& keypoint : msg->keypoints) {
+  //     if (keypoint.name == m_keypoint_name) {
+  //       x = keypoint.x;
+  //       y = keypoint.y;
+  //       break;
+  //     }
+  //   }
+  // }
 }
 
-void SingleKeypointTrackerNode::publishKeypoints() const
+void SingleKeypointTrackerNode::publishKeypoints(double x, double y) const
+{
+  human_swarm_interaction_interfaces::msg::PoseKeypointsStamped msg;
+  msg.header.stamp = this->now();
+  msg.header.frame_id = "base_link";
+
+  human_swarm_interaction_interfaces::msg::PoseKeypoint keypoint;
+  keypoint.name = m_keypoint_name;
+  keypoint.x = x;
+  keypoint.y = y;
+  msg.keypoints.push_back(keypoint);
+  m_keypoints_pub->publish(msg);
+}
+
+void SingleKeypointTrackerNode::initializeLinearKalmanFilter()
 {
 }
 
@@ -62,9 +89,18 @@ void SingleKeypointTrackerNode::initializeKeyPointsPublisher()
 
 void SingleKeypointTrackerNode::configureParameters()
 {
+  // Parameterize the keypoint name to track
   this->declare_parameter("keypoint_name", "right_wrist");
   m_keypoint_name = this->get_parameter("keypoint_name").as_string();
   RCLCPP_INFO(get_logger(), "Selected keypoint name: %s", m_keypoint_name.c_str());
+
+  // Parameterize the tracking window dimensions
+  this->declare_parameter("tracking_window_width", 0.1);
+  this->declare_parameter("tracking_window_height", 0.1);
+  m_tracking_window_width = this->get_parameter("tracking_window_width").as_double();
+  m_tracking_window_height = this->get_parameter("tracking_window_height").as_double();
+  RCLCPP_INFO(get_logger(), "Tracking window width: %f, height: %f", 
+    m_tracking_window_width, m_tracking_window_height);
 }
 
 int main(int argc, char * argv[])
