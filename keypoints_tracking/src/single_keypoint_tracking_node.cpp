@@ -28,16 +28,21 @@ void SingleKeypointTrackerNode::keypointsCallback(
 {
   m_last_msg_header = &(msg->header);
 
-  // try {
-  //   double x, y;
-  //   for (const auto& keypoint : msg->keypoints) {
-  //     if (keypoint.name == m_keypoint_name) {
-  //       x = keypoint.x;
-  //       y = keypoint.y;
-  //       break;
-  //     }
-  //   }
-  // }
+  try {
+    for (const auto& keypoint : msg->keypoints) {
+      if (keypoint.name == m_keypoint_name) {
+        m_kalman_filter->filter(keypoint.x, keypoint.y, m_tracking_window_width, m_tracking_window_height, 0.1);
+        
+        auto centroid = m_kalman_filter->getCentroidCoordinate();
+        publishKeypoints(centroid[0], centroid[1]);
+
+        break;
+      }
+    }
+  } catch (const std::exception& e) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, 
+      "Error in keypoint tracking: %s", e.what());
+  }
 }
 
 void SingleKeypointTrackerNode::publishKeypoints(double x, double y) const
