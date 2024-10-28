@@ -25,29 +25,39 @@
 #define MEASUREMENT_TRACKING_WINDOW_HALF_WIDTH        2
 #define MEASUREMENT_TRACKING_WINDOW_HALF_HEIGHT       3
 
+#define OUTPUT_SIZE 2
+
 namespace HumanSwarmInteraction
 {
   class LinearKalmanFilter
   {
     public:
-      LinearKalmanFilter();
+      LinearKalmanFilter(const std::array<double, STATE_SIZE>& initial_state,
+        const std::array<double, STATE_SIZE>& covariances, const std::array<double, STATE_SIZE>& process_noises, 
+        const std::array<double, MEASUREMENT_SIZE>& observation_noises);
       ~LinearKalmanFilter() = default;
 
-      void initialize(const Eigen::VectorXd& x0, const Eigen::MatrixXd& P0, const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, const Eigen::MatrixXd& H, const Eigen::MatrixXd& Q, const Eigen::MatrixXd& R);
+      void filter(const double& x, const double& y, const double& dt);
+      std::array<double, OUTPUT_SIZE> getCentroidCoordinate() const;
+
+    private:
       void predict();
       void update(const Eigen::VectorXd& z);
 
-      Eigen::VectorXd getState();
-      Eigen::MatrixXd getCovariance();
+      Eigen::MatrixXd initializeStateTransitionMatrix(const double& dt) const;
+      void initializeObservationMatrix();
+      void initializeState(const std::array<double, STATE_SIZE>& initial_state);
+      void initializeCovarianceMatrix(const std::array<double, STATE_SIZE>& covariances);
+      void initializeProcessNoiseMatrix(const std::array<double, STATE_SIZE>& process_noises);
+      void initializeObservationNoiseMatrix(const std::array<double, MEASUREMENT_SIZE>& observation_noises);
 
-    private:
       Eigen::VectorXd m_x;
       Eigen::MatrixXd m_P;
-      Eigen::MatrixXd m_A;
-      Eigen::MatrixXd m_B;
-      Eigen::MatrixXd m_H;
-      Eigen::MatrixXd m_Q;
-      Eigen::MatrixXd m_R;
+      // Eigen::MatrixXd m_A; // Configurable due to variable dt
+      // Eigen::MatrixXd m_B; // Not used
+      Eigen::MatrixXd m_H;    // Fixed
+      Eigen::MatrixXd m_Q;    // Parameterizable
+      Eigen::MatrixXd m_R;    // Parameterizable
 
   };  // class LinearKalmanFilter
 } // namespace HumanSwarmInteraction

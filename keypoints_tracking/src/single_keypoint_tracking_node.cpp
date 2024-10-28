@@ -42,15 +42,17 @@ void SingleKeypointTrackerNode::keypointsCallback(
 
 void SingleKeypointTrackerNode::publishKeypoints(double x, double y) const
 {
+  // Create PoseKeypointsStamped message and update header to match the last received message.
   human_swarm_interaction_interfaces::msg::PoseKeypointsStamped msg;
-  msg.header.stamp = this->now();
-  msg.header.frame_id = "base_link";
+  msg.header = *m_last_msg_header;
 
+  // Update the keypoint with the filtered 2D position.
   human_swarm_interaction_interfaces::msg::PoseKeypoint keypoint;
   keypoint.name = m_keypoint_name;
   keypoint.x = x;
   keypoint.y = y;
   msg.keypoints.push_back(keypoint);
+
   m_keypoints_pub->publish(msg);
 }
 
