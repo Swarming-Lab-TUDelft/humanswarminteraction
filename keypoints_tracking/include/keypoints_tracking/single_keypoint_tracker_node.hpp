@@ -28,6 +28,8 @@ namespace HumanSwarmInteraction
       void keypointsCallback(const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg);
       void publishKeypoints(double x, double y) const;
 
+      double computeTimeStep(const std_msgs::msg::Header& header);
+
       void initializeLinearKalmanFilter();
       void initializeKeyPointsSubscriber();
       void initializeKeyPointsPublisher();
@@ -37,7 +39,7 @@ namespace HumanSwarmInteraction
       std::string m_keypoint_name;
       double m_tracking_window_width;
       double m_tracking_window_height;
-      std_msgs::msg::Header * m_last_msg_header;
+      std_msgs::msg::Header m_last_msg_header;
 
       rclcpp::Subscription<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>::SharedPtr m_keypoints_sub;
       rclcpp::Publisher<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>::SharedPtr m_keypoints_pub;
