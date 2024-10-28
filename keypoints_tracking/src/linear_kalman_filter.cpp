@@ -19,23 +19,62 @@ LinearKalmanFilter::LinearKalmanFilter(const std::array<double, STATE_SIZE>& ini
   initializeObservationNoiseMatrix(observation_noises);
 }
 
+void LinearKalmanFilter::filter(const double& x, const double& y, 
+  const double& w, const double& h, const double& dt)
+{
+  // Predict next state and covariance
+  predict(dt);
+
+  // Update state and covariance
+  Eigen::VectorXd z(MEASUREMENT_SIZE);
+  z << x, y, w, h;
+  update(z);
+}
+
+std::array<double, OUTPUT_SIZE> LinearKalmanFilter::getCentroidCoordinate() const
+{
+  std::array<double, OUTPUT_SIZE> centroid;
+  centroid[0] = m_x(STATE_HORIZONTAL_CENTROID_COORDINATE);
+  centroid[1] = m_x(STATE_VERTICAL_CENTROID_COORDINATE);
+  return centroid;
+}
+
+void LinearKalmanFilter::predict(const double& dt)
+{
+  // Get state transition matrix given variable time step
+  Eigen::MatrixXd A = initializeStateTransitionMatrix(dt);
+
+  // Predict next state and covariance
+  m_x.noalias() = A * m_x;
+  m_P.noalias() = A * m_P * A.transpose() + m_Q;
+}
+
+void LinearKalmanFilter::update(const Eigen::VectorXd& z)
+{
+  // Calculate Kalman gain
+  Eigen::MatrixXd S = m_H * m_P * m_H.transpose() + m_R;
+  Eigen::MatrixXd K = m_P * m_H.transpose() * S.inverse();
+
+  // Update state and covariance
+  m_x.noalias() += K * (z - m_H * m_x);
+  m_P.noalias() -= K * m_H * m_P;
+}
+
 Eigen::MatrixXd LinearKalmanFilter::initializeStateTransitionMatrix(const double& dt) const
 {
   Eigen::MatrixXd A = Eigen::MatrixXd::Identity(STATE_SIZE, STATE_SIZE);
-  A(STATE_HORIZONTAL_CENTROID_COORDINATE, STATE_HORIZONTAL_CENTROID_VELOCITY) = dt;
-  A(STATE_VERTICAL_CENTROID_COORDINATE, STATE_VERTICAL_CENTROID_VELOCITY) = dt;
-  A(STATE_TRACKING_WINDOW_HALF_WIDTH, STATE_TRACKING_WINDOW_WIDTH_VELOCITY) = dt;
-  A(STATE_TRACKING_WINDOW_HALF_HEIGHT, STATE_TRACKING_WINDOW_HEIGHT_VELOCITY) = dt;
+  for (int i = 0; i < MEASUREMENT_SIZE; i++) {
+    A(i, i + MEASUREMENT_SIZE) = dt;
+  }
   return A;
 }
 
 void LinearKalmanFilter::initializeObservationMatrix()
 {
   m_H = Eigen::MatrixXd::Zero(STATE_SIZE, MEASUREMENT_SIZE);
-  m_H << 1, 0, 0, 0, 0, 0, 0, 0,
-    0, 1, 0, 0, 0, 0, 0, 0,
-    0, 0, 1, 0, 0, 0, 0, 0,
-    0, 0, 0, 1, 0, 0, 0, 0;
+  for (int i = 0; i < MEASUREMENT_SIZE; i++) {
+    m_H(i, i) = 1;
+  }
 }
 
 void LinearKalmanFilter::initializeState(const std::array<double, STATE_SIZE>& initial_state)

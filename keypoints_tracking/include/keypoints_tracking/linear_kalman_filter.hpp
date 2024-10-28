@@ -37,11 +37,12 @@ namespace HumanSwarmInteraction
         const std::array<double, MEASUREMENT_SIZE>& observation_noises);
       ~LinearKalmanFilter() = default;
 
-      void filter(const double& x, const double& y, const double& dt);
+      void filter(const double& x, const double& y, 
+        const double& w, const double& h, const double& dt);
       std::array<double, OUTPUT_SIZE> getCentroidCoordinate() const;
 
     private:
-      void predict();
+      void predict(const double& dt);
       void update(const Eigen::VectorXd& z);
 
       Eigen::MatrixXd initializeStateTransitionMatrix(const double& dt) const;
