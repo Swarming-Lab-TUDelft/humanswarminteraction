@@ -7,6 +7,7 @@
 #ifndef KEYPOINTS_TRACKING__LINEAR_KALMAN_FILTER_HPP_
 #define KEYPOINTS_TRACKING__LINEAR_KALMAN_FILTER_HPP_
 
+#include <vector>
 #include <Eigen/Dense>
 
 #define STATE_SIZE 8
@@ -31,34 +32,43 @@ namespace HumanSwarmInteraction
 {
   class LinearKalmanFilter
   {
-    public:
-      LinearKalmanFilter(const std::array<double, STATE_SIZE>& initial_state,
-        const std::array<double, STATE_SIZE>& covariances, const std::array<double, STATE_SIZE>& process_noises, 
-        const std::array<double, MEASUREMENT_SIZE>& observation_noises);
-      ~LinearKalmanFilter() = default;
+  public:
+    LinearKalmanFilter(const std::array<double, STATE_SIZE>& initial_state,
+      const std::array<double, STATE_SIZE>& covariances, const std::array<double, STATE_SIZE>& process_noises, 
+      const std::array<double, MEASUREMENT_SIZE>& observation_noises);
+    LinearKalmanFilter(const std::vector<double>& initial_state, 
+      const std::vector<double>& covariances, std::vector<double>& process_noises,
+      const std::vector<double>& observation_noises);
+    ~LinearKalmanFilter() = default;
 
-      void filter(const double& x, const double& y, 
-        const double& w, const double& h, const double& dt);
-      std::array<double, OUTPUT_SIZE> getCentroidCoordinate() const;
+    void filter(const double& x, const double& y, 
+      const double& w, const double& h, const double& dt);
+    std::array<double, OUTPUT_SIZE> getCentroidCoordinate() const;
 
-    private:
-      void predict(const double& dt);
-      void update(const Eigen::VectorXd& z);
+  private:
+    void predict(const double& dt);
+    void update(const Eigen::VectorXd& z);
 
-      Eigen::MatrixXd initializeStateTransitionMatrix(const double& dt) const;
-      void initializeObservationMatrix();
-      void initializeState(const std::array<double, STATE_SIZE>& initial_state);
-      void initializeCovarianceMatrix(const std::array<double, STATE_SIZE>& covariances);
-      void initializeProcessNoiseMatrix(const std::array<double, STATE_SIZE>& process_noises);
-      void initializeObservationNoiseMatrix(const std::array<double, MEASUREMENT_SIZE>& observation_noises);
+    Eigen::MatrixXd initializeStateTransitionMatrix(const double& dt) const;
+    void initializeObservationMatrix();
 
-      Eigen::VectorXd m_x;
-      Eigen::MatrixXd m_P;
-      // Eigen::MatrixXd m_A; // Configurable due to variable dt
-      // Eigen::MatrixXd m_B; // Not used
-      Eigen::MatrixXd m_H;    // Fixed
-      Eigen::MatrixXd m_Q;    // Parameterizable
-      Eigen::MatrixXd m_R;    // Parameterizable
+    void initializeState(const std::array<double, STATE_SIZE>& initial_state);
+    void initializeCovarianceMatrix(const std::array<double, STATE_SIZE>& covariances);
+    void initializeProcessNoiseMatrix(const std::array<double, STATE_SIZE>& process_noises);
+    void initializeObservationNoiseMatrix(const std::array<double, MEASUREMENT_SIZE>& observation_noises);
+
+    void initializeState(const std::vector<double>& initial_state);
+    void initializeCovarianceMatrix(const std::vector<double>& covariances);
+    void initializeProcessNoiseMatrix(const std::vector<double>& process_noises);
+    void initializeObservationNoiseMatrix(const std::vector<double>& observation_noises);
+
+    Eigen::VectorXd m_x;
+    Eigen::MatrixXd m_P;
+    // Eigen::MatrixXd m_A; // Configurable due to variable dt
+    // Eigen::MatrixXd m_B; // Not used
+    Eigen::MatrixXd m_H;    // Fixed
+    Eigen::MatrixXd m_Q;    // Parameterizable
+    Eigen::MatrixXd m_R;    // Parameterizable
 
   };  // class LinearKalmanFilter
 } // namespace HumanSwarmInteraction

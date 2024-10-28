@@ -19,6 +19,17 @@ LinearKalmanFilter::LinearKalmanFilter(const std::array<double, STATE_SIZE>& ini
   initializeObservationNoiseMatrix(observation_noises);
 }
 
+LinearKalmanFilter::LinearKalmanFilter(const std::vector<double>& initial_state, 
+  const std::vector<double>& covariances, std::vector<double>& process_noises,
+  const std::vector<double>& observation_noises)
+{
+  initializeObservationMatrix();
+  initializeState(initial_state);
+  initializeCovarianceMatrix(covariances);
+  initializeProcessNoiseMatrix(process_noises);
+  initializeObservationNoiseMatrix(observation_noises);
+}
+
 void LinearKalmanFilter::filter(const double& x, const double& y, 
   const double& w, const double& h, const double& dt)
 {
@@ -95,6 +106,29 @@ void LinearKalmanFilter::initializeProcessNoiseMatrix(const std::array<double, S
 }
 
 void LinearKalmanFilter::initializeObservationNoiseMatrix(const std::array<double, MEASUREMENT_SIZE>& observation_noises)
+{
+  m_R = Eigen::MatrixXd::Zero(MEASUREMENT_SIZE, MEASUREMENT_SIZE);
+  m_R.diagonal() = Eigen::Map<const Eigen::VectorXd>(observation_noises.data(), MEASUREMENT_SIZE);
+}
+
+void LinearKalmanFilter::initializeState(const std::vector<double>& initial_state)
+{
+  m_x = Eigen::Map<const Eigen::VectorXd>(initial_state.data(), STATE_SIZE);
+}
+
+void LinearKalmanFilter::initializeCovarianceMatrix(const std::vector<double>& covariances)
+{
+  m_P = Eigen::MatrixXd::Zero(STATE_SIZE, STATE_SIZE);
+  m_P.diagonal() = Eigen::Map<const Eigen::VectorXd>(covariances.data(), STATE_SIZE);
+}
+
+void LinearKalmanFilter::initializeProcessNoiseMatrix(const std::vector<double>& process_noises)
+{
+  m_Q = Eigen::MatrixXd::Zero(STATE_SIZE, STATE_SIZE);
+  m_Q.diagonal() = Eigen::Map<const Eigen::VectorXd>(process_noises.data(), STATE_SIZE);
+}
+
+void LinearKalmanFilter::initializeObservationNoiseMatrix(const std::vector<double>& observation_noises)
 {
   m_R = Eigen::MatrixXd::Zero(MEASUREMENT_SIZE, MEASUREMENT_SIZE);
   m_R.diagonal() = Eigen::Map<const Eigen::VectorXd>(observation_noises.data(), MEASUREMENT_SIZE);

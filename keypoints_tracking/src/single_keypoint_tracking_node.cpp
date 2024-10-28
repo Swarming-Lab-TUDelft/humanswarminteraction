@@ -58,6 +58,17 @@ void SingleKeypointTrackerNode::publishKeypoints(double x, double y) const
 
 void SingleKeypointTrackerNode::initializeLinearKalmanFilter()
 {
+  this->declare_parameter("initial_state", std::vector<double>());
+  this->declare_parameter("covariances", std::vector<double>());
+  this->declare_parameter("process_noises", std::vector<double>());
+  this->declare_parameter("observation_noises", std::vector<double>());
+
+  std::vector<double> initial_state = this->get_parameter("initial_state").as_double_array();
+  std::vector<double> covariances = this->get_parameter("covariances").as_double_array();
+  std::vector<double> process_noises = this->get_parameter("process_noises").as_double_array();
+  std::vector<double> observation_noises = this->get_parameter("observation_noises").as_double_array();
+
+  m_kalman_filter = std::make_unique<LinearKalmanFilter>(initial_state, covariances, process_noises, observation_noises);
 }
 
 void SingleKeypointTrackerNode::initializeKeyPointsSubscriber()
