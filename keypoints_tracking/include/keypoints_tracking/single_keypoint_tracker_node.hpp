@@ -38,7 +38,11 @@ namespace HumanSwarmInteraction
       std::string m_keypoint_name;
       double m_tracking_window_width;
       double m_tracking_window_height;
-      bool m_initialized = false;      
+      bool m_initialized = false;
+
+      int m_moving_average_window_size;
+      std::vector<double> m_x_moving_average_window;
+      std::vector<double> m_y_moving_average_window;
 
       rclcpp::TimerBase::SharedPtr m_timer;
       rclcpp::Subscription<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>::SharedPtr m_keypoints_sub;
