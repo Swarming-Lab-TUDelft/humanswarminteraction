@@ -8,23 +8,18 @@
 #define KEYPOINTS_TRACKING__LINEAR_KALMAN_FILTER_HPP_
 
 #include <vector>
-#include <Eigen/Dense>
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Dense>
 
-#define STATE_SIZE 8
+#define STATE_SIZE 4
 #define STATE_HORIZONTAL_CENTROID_COORDINATE    0
 #define STATE_VERTICAL_CENTROID_COORDINATE      1
-#define STATE_TRACKING_WINDOW_HALF_WIDTH        2
-#define STATE_TRACKING_WINDOW_HALF_HEIGHT       3
-#define STATE_HORIZONTAL_CENTROID_VELOCITY      4
-#define STATE_VERTICAL_CENTROID_VELOCITY        5
-#define STATE_TRACKING_WINDOW_WIDTH_VELOCITY    6
-#define STATE_TRACKING_WINDOW_HEIGHT_VELOCITY   7
+#define STATE_HORIZONTAL_CENTROID_VELOCITY      2
+#define STATE_VERTICAL_CENTROID_VELOCITY        3
 
-#define MEASUREMENT_SIZE 4
+#define MEASUREMENT_SIZE 2
 #define MEASUREMENT_HORIZONTAL_CENTROID_COORDINATE    0
 #define MEASUREMENT_VERTICAL_CENTROID_COORDINATE      1
-#define MEASUREMENT_TRACKING_WINDOW_HALF_WIDTH        2
-#define MEASUREMENT_TRACKING_WINDOW_HALF_HEIGHT       3
 
 #define OUTPUT_SIZE 2
 
@@ -35,21 +30,20 @@ namespace HumanSwarmInteraction
   public:
     LinearKalmanFilter(const std::array<double, STATE_SIZE>& initial_state,
       const std::array<double, STATE_SIZE>& covariances, const std::array<double, STATE_SIZE>& process_noises, 
-      const std::array<double, MEASUREMENT_SIZE>& observation_noises);
+      const std::array<double, MEASUREMENT_SIZE>& observation_noises, const double& dt);
     LinearKalmanFilter(const std::vector<double>& initial_state, 
       const std::vector<double>& covariances, std::vector<double>& process_noises,
-      const std::vector<double>& observation_noises);
+      const std::vector<double>& observation_noises, const double& dt);
     ~LinearKalmanFilter() = default;
 
-    void filter(const double& x, const double& y, 
-      const double& w, const double& h, const double& dt);
     std::array<double, OUTPUT_SIZE> getCentroidCoordinate() const;
+    void predict();
+    void update(const double& x, const double& y);
+
+    void setInitialState(const double& x, const double& y, const double& vx, const double& vy);
 
   private:
-    void predict(const double& dt);
-    void update(const Eigen::VectorXd& z);
-
-    Eigen::MatrixXd initializeStateTransitionMatrix(const double& dt) const;
+    void initializeStateTransitionMatrix(const double& dt);
     void initializeObservationMatrix();
 
     void initializeState(const std::array<double, STATE_SIZE>& initial_state);
@@ -64,7 +58,7 @@ namespace HumanSwarmInteraction
 
     Eigen::VectorXd m_x;
     Eigen::MatrixXd m_P;
-    // Eigen::MatrixXd m_A; // Configurable due to variable dt
+    Eigen::MatrixXd m_A;    // Parameterizable depending on dt
     // Eigen::MatrixXd m_B; // Not used
     Eigen::MatrixXd m_H;    // Fixed
     Eigen::MatrixXd m_Q;    // Parameterizable

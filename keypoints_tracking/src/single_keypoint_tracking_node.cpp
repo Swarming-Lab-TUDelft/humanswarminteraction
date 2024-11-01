@@ -23,22 +23,25 @@ SingleKeypointTrackerNode::~SingleKeypointTrackerNode()
   RCLCPP_WARN(get_logger(), "Single Keypoint Tracker Node destroyed.");
 }
 
+void SingleKeypointTrackerNode::timerCallback()
+{
+  auto centroid = m_kalman_filter->getCentroidCoordinate();
+  publishKeypoints(centroid[0], centroid[1]);
+}
+
 void SingleKeypointTrackerNode::keypointsCallback(
   const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg)
 {
-  double dt = computeTimeStep(msg->header);
-  m_last_msg_header = msg->header;
-
   try {
     for (const auto& keypoint : msg->keypoints) {
       if (keypoint.name == m_keypoint_name) {
-        m_kalman_filter->filter(keypoint.x, keypoint.y, 
-          m_tracking_window_width, m_tracking_window_height, dt);
-        
-        auto centroid = m_kalman_filter->getCentroidCoordinate();
-        publishKeypoints(centroid[0], centroid[1]);
-
-        break;
+        if (m_initialized) {
+          m_kalman_filter->predict();
+          m_kalman_filter->update(keypoint.x, keypoint.y);
+          break;
+        } else {
+          m_kalman_filter->setInitialState(keypoint.x, keypoint.y, 0.0, 0.0);
+        }
       }
     }
   } catch (const std::exception& e) {
@@ -52,7 +55,8 @@ void SingleKeypointTrackerNode::publishKeypoints(double x, double y) const
   // Create PoseKeypointsStamped message and update header to match the 
   // last received message.
   human_swarm_interaction_interfaces::msg::PoseKeypointsStamped msg;
-  msg.header = m_last_msg_header;
+  msg.header.frame_id = "camera_frame";
+  msg.header.stamp = this->now();
 
   // Update the keypoint with the filtered 2D position.
   human_swarm_interaction_interfaces::msg::PoseKeypoint keypoint;
@@ -62,12 +66,6 @@ void SingleKeypointTrackerNode::publishKeypoints(double x, double y) const
   msg.keypoints.push_back(keypoint);
 
   m_keypoints_pub->publish(msg);
-}
-
-double SingleKeypointTrackerNode::computeTimeStep(const std_msgs::msg::Header& header)
-{
-  return (header.stamp.nanosec - m_last_msg_header.stamp.nanosec) * 1e-9 
-    + (header.stamp.sec - m_last_msg_header.stamp.sec);
 }
 
 void SingleKeypointTrackerNode::initializeLinearKalmanFilter()
@@ -103,8 +101,16 @@ void SingleKeypointTrackerNode::initializeLinearKalmanFilter()
       + std::to_string(observation_noises.size()));
   }
 
+  // Initialize timer
+  this->declare_parameter("timer_period", 0.01);
+  double timer_period = this->get_parameter("timer_period").as_double();
+
+  m_timer = this->create_wall_timer(std::chrono::milliseconds((int)(timer_period * 1000)), 
+    std::bind(&SingleKeypointTrackerNode::timerCallback, this));
+  RCLCPP_INFO(get_logger(), "Timer initialized with period: %f", timer_period);
+
   // Initialize the Kalman filter
-  m_kalman_filter = std::make_unique<LinearKalmanFilter>(initial_state, covariances, process_noises, observation_noises);
+  m_kalman_filter = std::make_unique<LinearKalmanFilter>(initial_state, covariances, process_noises, observation_noises, timer_period);
 }
 
 void SingleKeypointTrackerNode::initializeKeyPointsSubscriber()
@@ -120,9 +126,6 @@ void SingleKeypointTrackerNode::initializeKeyPointsSubscriber()
   m_keypoints_sub = this->create_subscription<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>(
     input_keypoints_topic_name, input_keypoints_topic_queue_size, 
     std::bind(&SingleKeypointTrackerNode::keypointsCallback, this, std::placeholders::_1));
-
-  m_last_msg_header = std_msgs::msg::Header();
-  m_last_msg_header.stamp = this->now();
 }
 
 void SingleKeypointTrackerNode::initializeKeyPointsPublisher()
