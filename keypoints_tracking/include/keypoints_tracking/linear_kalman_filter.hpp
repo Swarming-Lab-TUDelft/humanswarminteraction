@@ -8,6 +8,9 @@
 #define KEYPOINTS_TRACKING__LINEAR_KALMAN_FILTER_HPP_
 
 #include <vector>
+#include <memory>
+#include <array>
+
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Dense>
 
@@ -28,6 +31,8 @@ namespace HumanSwarmInteraction
   class LinearKalmanFilter
   {
   public:
+    typedef std::shared_ptr<LinearKalmanFilter> SharedPtr;
+
     LinearKalmanFilter(const std::array<double, STATE_SIZE>& initial_state,
       const std::array<double, STATE_SIZE>& covariances, const std::array<double, STATE_SIZE>& process_noises, 
       const std::array<double, MEASUREMENT_SIZE>& observation_noises, const double& dt);
