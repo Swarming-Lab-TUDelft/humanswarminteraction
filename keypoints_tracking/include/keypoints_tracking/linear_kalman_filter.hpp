@@ -14,15 +14,21 @@
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Dense>
 
-#define STATE_SIZE 4
+#define STATE_SIZE 8
 #define STATE_HORIZONTAL_CENTROID_COORDINATE    0
 #define STATE_VERTICAL_CENTROID_COORDINATE      1
-#define STATE_HORIZONTAL_CENTROID_VELOCITY      2
-#define STATE_VERTICAL_CENTROID_VELOCITY        3
+#define STATE_TRACKING_WINDOW_WIDTH             2
+#define STATE_TRACKING_WINDOW_HEIGHT            3
+#define STATE_HORIZONTAL_CENTROID_VELOCITY      4
+#define STATE_VERTICAL_CENTROID_VELOCITY        5
+#define STATE_TRACKING_WINDOW_WIDTH_VELOCITY    6
+#define STATE_TRACKING_WINDOW_HEIGHT_VELOCITY   7
 
-#define MEASUREMENT_SIZE 2
+#define MEASUREMENT_SIZE 4
 #define MEASUREMENT_HORIZONTAL_CENTROID_COORDINATE    0
 #define MEASUREMENT_VERTICAL_CENTROID_COORDINATE      1
+#define MEASUREMENT_TRACKING_WINDOW_WIDTH             2
+#define MEASUREMENT_TRACKING_WINDOW_HEIGHT            3
 
 #define OUTPUT_SIZE 2
 
@@ -43,9 +49,10 @@ namespace HumanSwarmInteraction
 
     std::array<double, OUTPUT_SIZE> getCentroidCoordinate() const;
     void predict();
-    void update(const double& x, const double& y);
+    void update(const double& x, const double& y, const double& w, const double& h);
 
-    void setInitialState(const double& x, const double& y, const double& vx, const double& vy);
+    void setInitialState(const double& x, const double& y, const double& w, const double& h,
+      const double& vx, const double& vy, const double& vw, const double& vh);
 
   private:
     void initializeStateTransitionMatrix(const double& dt);

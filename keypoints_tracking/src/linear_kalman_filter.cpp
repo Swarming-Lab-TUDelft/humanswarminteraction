@@ -49,11 +49,11 @@ void LinearKalmanFilter::predict()
   m_P.noalias() = m_A * m_P * m_A.transpose() + m_Q;
 }
 
-void LinearKalmanFilter::update(const double& x, const double& y)
+void LinearKalmanFilter::update(const double& x, const double& y, const double& w, const double& h)
 {
   // Create measurement vector
   Eigen::VectorXd z(MEASUREMENT_SIZE);
-  z << x, y;
+  z << x, y, w, h;
 
   // Calculate Kalman gain
   Eigen::MatrixXd S = m_H * m_P * m_H.transpose() + m_R;
@@ -64,14 +64,19 @@ void LinearKalmanFilter::update(const double& x, const double& y)
   m_P.noalias() -= K * m_H * m_P;
 }
 
-void LinearKalmanFilter::setInitialState(const double& x, const double& y, const double& vx, const double& vy)
+void LinearKalmanFilter::setInitialState(const double& x, const double& y, const double& w, const double& h,
+  const double& vx, const double& vy, const double& vw, const double& vh)
 {
   m_x(STATE_HORIZONTAL_CENTROID_COORDINATE) = x;
   m_x(STATE_VERTICAL_CENTROID_COORDINATE) = y;
+  m_x(STATE_TRACKING_WINDOW_WIDTH) = w;
+  m_x(STATE_TRACKING_WINDOW_HEIGHT) = h;
   m_x(STATE_HORIZONTAL_CENTROID_VELOCITY) = vx;
   m_x(STATE_VERTICAL_CENTROID_VELOCITY) = vy;
+  m_x(STATE_TRACKING_WINDOW_WIDTH_VELOCITY) = vw;
+  m_x(STATE_TRACKING_WINDOW_HEIGHT_VELOCITY) = vh;
 
-  m_P = Eigen::MatrixXd::Identity(STATE_SIZE, STATE_SIZE) * 0.1;
+  m_P = Eigen::MatrixXd::Identity(STATE_SIZE, STATE_SIZE) * 1.0;
 }
 
 void LinearKalmanFilter::initializeStateTransitionMatrix(const double& dt)
