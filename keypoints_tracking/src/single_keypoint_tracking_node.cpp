@@ -29,7 +29,7 @@ void SingleKeypointTrackerNode::timerCallback()
   // publishKeypoints(centroid[0], centroid[1]);
 
   // Publish moving average window
-  if (m_x_moving_average_window.size() >= m_moving_average_window_size) {
+  if (m_x_moving_average_window.size() >= static_cast<size_t>(m_moving_average_window_size)) {
     double x_sum = 0.0;
     double y_sum = 0.0;
     for (int i = 0; i < m_moving_average_window_size; i++) {
@@ -62,7 +62,7 @@ void SingleKeypointTrackerNode::keypointsCallback(
         m_y_moving_average_window.push_back(centroid[1]);
 
         // Remove the oldest element if the window size is exceeded
-        if (m_x_moving_average_window.size() > m_moving_average_window_size) {
+        if (m_x_moving_average_window.size() > static_cast<size_t>(m_moving_average_window_size)) {
           m_x_moving_average_window.erase(m_x_moving_average_window.begin());
           m_y_moving_average_window.erase(m_y_moving_average_window.begin());
         }
