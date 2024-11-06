@@ -32,6 +32,8 @@ void SingleKeypointTrackerNode::timerCallback()
 void SingleKeypointTrackerNode::keypointsCallback(
   const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg)
 {
+  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 5000, "Received keypoints message.");
+
   try {
     for (const auto& keypoint : msg->keypoints) {
       if (keypoint.name != m_keypoint_name) {

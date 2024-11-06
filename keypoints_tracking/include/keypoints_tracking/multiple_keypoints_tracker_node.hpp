@@ -30,7 +30,7 @@ namespace HumanSwarmInteraction
       void keypointsCallback(const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg);
       void publishKeypoints() const;
 
-      void initializeLinearKalmanFilters();
+      void initializeTimer();
       void initializeKeyPointsSubscriber();
       void initializeKeyPointsPublisher();
       void configureParameters();
