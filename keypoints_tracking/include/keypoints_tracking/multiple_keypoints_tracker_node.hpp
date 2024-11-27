@@ -1,11 +1,11 @@
 /* TU Delft Swarm Lab - Human Swarm Interaction Project
- * Description: Track and filter a single keypoint linearly.
+ * Description: Track and filter multiple keypoints linearly.
  * Author: Alexander James Becoy
- * Date: 2024-10-28
+ * Date: 2024-11-06
  */
 
-#ifndef KEYPOINTS_TRACKING__SINGLE_KEYPOINT_TRACKER_NODE_HPP_
-#define KEYPOINTS_TRACKING__SINGLE_KEYPOINT_TRACKER_NODE_HPP_
+#ifndef KEYPOINTS_TRACKING__MULTIPLE_KEYPOINTS_TRACKER_NODE_HPP_
+#define KEYPOINTS_TRACKING__MULTIPLE_KEYPOINTS_TRACKER_NODE_HPP_
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/header.hpp>
@@ -13,38 +13,38 @@
 
 #include <vector>
 #include <string>
+#include <unordered_map>
 
 #include <keypoints_tracking/linear_kalman_filter.hpp>
 
 namespace HumanSwarmInteraction
 {
-  class SingleKeypointTrackerNode : public rclcpp::Node
+  class MultipleKeypointsTrackerNode : public rclcpp::Node
   {
     public:
-      SingleKeypointTrackerNode();
-      ~SingleKeypointTrackerNode();
+      MultipleKeypointsTrackerNode();
+      ~MultipleKeypointsTrackerNode();
 
     private:
       void timerCallback();
       void keypointsCallback(const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg);
-      void publishKeypoints(double x, double y) const;
+      void publishKeypoints() const;
 
-      void initializeLinearKalmanFilter();
+      void initializeKalmanFilters();
       void initializeKeyPointsSubscriber();
       void initializeKeyPointsPublisher();
       void configureParameters();
 
-      std::unique_ptr<LinearKalmanFilter> m_kalman_filter;
-      std::string m_keypoint_name;
+      std::unordered_map<std::string, LinearKalmanFilter::SharedPtr> m_kalman_filters;
+      std::vector<std::string> m_keypoint_names;
       double m_tracking_window_width;
       double m_tracking_window_height;
-      bool m_initialized = false;
 
       rclcpp::TimerBase::SharedPtr m_timer;
       rclcpp::Subscription<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>::SharedPtr m_keypoints_sub;
       rclcpp::Publisher<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>::SharedPtr m_keypoints_pub;
 
-  };  // class SingleKeypointTrackerNode
+  };  // class MultipleKeypointsTrackerNode
 } // namespace HumanSwarmInteraction
 
-#endif  // KEYPOINTS_TRACKING__SINGLE_KEYPOINT_TRACKER_NODE_HPP_
+#endif  // KEYPOINTS_TRACKING__MULTIPLE_KEYPOINTS_TRACKER_NODE_HPP_

@@ -1,85 +1,47 @@
 /* TU Delft Swarm Lab - Human Swarm Interaction Project
- * Description: Track and filter a single keypoint linearly.
+ * Description: Track and filter multiple keypoints linearly.
  * Author: Alexander James Becoy
- * Date: 2024-10-28
+ * Date: 2024-11-06
  */
 
-#include <keypoints_tracking/single_keypoint_tracker_node.hpp>
+#include <keypoints_tracking/multiple_keypoints_tracker_node.hpp>
 
 using namespace HumanSwarmInteraction;
 
-SingleKeypointTrackerNode::SingleKeypointTrackerNode()
-: Node("single_keypoint_tracking_node")
+MultipleKeypointsTrackerNode::MultipleKeypointsTrackerNode()
+: Node("multiple_keypoints_tracking_node")
 {
   configureParameters();
-  initializeLinearKalmanFilter();
-  initializeKeyPointsSubscriber();
+  initializeKalmanFilters();
   initializeKeyPointsPublisher();
-  RCLCPP_INFO(get_logger(), "Single Keypoint Tracker Node initialized.");
+  initializeKeyPointsSubscriber();
+  RCLCPP_INFO(get_logger(), "Multiple Keypoints Tracker Node initialized.");
 }
 
-SingleKeypointTrackerNode::~SingleKeypointTrackerNode()
+MultipleKeypointsTrackerNode::~MultipleKeypointsTrackerNode()
 {
-  RCLCPP_WARN(get_logger(), "Single Keypoint Tracker Node destroyed.");
+  RCLCPP_WARN(get_logger(), "Multiple Keypoints Tracker Node destroyed.");
 }
 
-void SingleKeypointTrackerNode::timerCallback()
+void MultipleKeypointsTrackerNode::timerCallback()
 {
-  auto centroid = m_kalman_filter->getCentroidCoordinate();
-  publishKeypoints(centroid[0], centroid[1]);
+  // TODO: Implement timer callback
 }
 
-void SingleKeypointTrackerNode::keypointsCallback(
+void MultipleKeypointsTrackerNode::keypointsCallback(
   const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg)
 {
-  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 5000, "Received keypoints message.");
-
-  try {
-    for (const auto& keypoint : msg->keypoints) {
-      if (keypoint.name != m_keypoint_name) {
-        continue;
-      }
-
-      double width = m_tracking_window_width * keypoint.confidence;
-      double height = m_tracking_window_height * keypoint.confidence;
-
-      if (m_initialized) {
-        m_kalman_filter->predict();
-        m_kalman_filter->update(keypoint.x, keypoint.y, width, height);
-      } else {
-        m_kalman_filter->setInitialState(keypoint.x, keypoint.y, width, height,
-          0.0, 0.0, 0.0, 0.0);
-        m_initialized = true;
-      }
-
-      break;
-    }
-  } catch (const std::exception& e) {
-    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, 
-      "Error in keypoint tracking: %s", e.what());
-  }
+  // TODO: Implement keypoints callback
 }
 
-void SingleKeypointTrackerNode::publishKeypoints(double x, double y) const
+void MultipleKeypointsTrackerNode::publishKeypoints() const
 {
-  // Create PoseKeypointsStamped message and update header to match the 
-  // last received message.
-  human_swarm_interaction_interfaces::msg::PoseKeypointsStamped msg;
-  msg.header.frame_id = "camera_frame";
-  msg.header.stamp = this->now();
-
-  // Update the keypoint with the filtered 2D position.
-  human_swarm_interaction_interfaces::msg::PoseKeypoint keypoint;
-  keypoint.name = m_keypoint_name;
-  keypoint.x = x;
-  keypoint.y = y;
-  msg.keypoints.push_back(keypoint);
-
-  m_keypoints_pub->publish(msg);
+  // TODO: Implement publish keypoints
 }
 
-void SingleKeypointTrackerNode::initializeLinearKalmanFilter()
+void MultipleKeypointsTrackerNode::initializeKalmanFilters()
 {
+  // Get the parameters for the Kalman Filter
   this->declare_parameter("initial_state", std::vector<double>());
   this->declare_parameter("covariances", std::vector<double>());
   this->declare_parameter("process_noises", std::vector<double>());
@@ -90,7 +52,7 @@ void SingleKeypointTrackerNode::initializeLinearKalmanFilter()
   std::vector<double> process_noises = this->get_parameter("process_noises").as_double_array();
   std::vector<double> observation_noises = this->get_parameter("observation_noises").as_double_array();
 
-  // Check if the parameters are of the correct size
+  // Check if the parameters are valid
   if (initial_state.size() != STATE_SIZE) {
     throw std::invalid_argument("Initial state must have size 8. Current size: " 
       + std::to_string(initial_state.size()));
@@ -116,15 +78,19 @@ void SingleKeypointTrackerNode::initializeLinearKalmanFilter()
   double timer_period = this->get_parameter("timer_period").as_double();
 
   m_timer = this->create_wall_timer(std::chrono::milliseconds((int)(timer_period * 1000)), 
-    std::bind(&SingleKeypointTrackerNode::timerCallback, this));
+    std::bind(&MultipleKeypointsTrackerNode::timerCallback, this));
   RCLCPP_INFO(get_logger(), "Timer initialized with period: %f", timer_period);
 
-  // Initialize the Kalman filter
-  m_kalman_filter = std::make_unique<LinearKalmanFilter>(
-    initial_state, covariances, process_noises, observation_noises, timer_period);
+  // Initialize Kalman filters
+  for (const auto& keypoint_name : m_keypoint_names) {
+    m_kalman_filters[keypoint_name] = std::make_shared<LinearKalmanFilter>(
+      initial_state, covariances, process_noises, observation_noises, timer_period);
+  }
+
+  RCLCPP_INFO(get_logger(), "Kalman filters initialized for %d keypoints", m_kalman_filters.size());
 }
 
-void SingleKeypointTrackerNode::initializeKeyPointsSubscriber()
+void MultipleKeypointsTrackerNode::initializeKeyPointsSubscriber()
 {
   this->declare_parameter("input_keypoints_topic_name", "all_keypoints");
   this->declare_parameter("input_keypoints_topic_queue_size", 10);
@@ -136,10 +102,10 @@ void SingleKeypointTrackerNode::initializeKeyPointsSubscriber()
 
   m_keypoints_sub = this->create_subscription<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>(
     input_keypoints_topic_name, input_keypoints_topic_queue_size, 
-    std::bind(&SingleKeypointTrackerNode::keypointsCallback, this, std::placeholders::_1));
+    std::bind(&MultipleKeypointsTrackerNode::keypointsCallback, this, std::placeholders::_1));
 }
 
-void SingleKeypointTrackerNode::initializeKeyPointsPublisher()
+void MultipleKeypointsTrackerNode::initializeKeyPointsPublisher()
 {
   this->declare_parameter("output_keypoints_topic_name", "filtered_keypoints");
   this->declare_parameter("output_keypoints_topic_queue_size", 10);
@@ -153,13 +119,24 @@ void SingleKeypointTrackerNode::initializeKeyPointsPublisher()
     output_keypoints_topic_name, output_keypoints_topic_queue_size);
 }
 
-void SingleKeypointTrackerNode::configureParameters()
+void MultipleKeypointsTrackerNode::configureParameters()
 {
-  // Parameterize the keypoint name to track
-  this->declare_parameter("keypoint_name", "right_wrist");
-  m_keypoint_name = this->get_parameter("keypoint_name").as_string();
-  RCLCPP_INFO(get_logger(), "Selected keypoint name: %s", m_keypoint_name.c_str());
+  // Get the keypoint names to track
+  this->declare_parameter("keypoint_names", std::vector<std::string>{"right_wrist", "left_wrist"});
+  m_keypoint_names = this->get_parameter("keypoint_names").as_string_array();
 
+  // Concatenate the keypoint names into a single string for logging
+  std::string keypoint_names_str = "";
+  for (const auto& keypoint_name : m_keypoint_names) {
+    keypoint_names_str += keypoint_name;
+    
+    // Append a comma if the keypoint name is not the last one
+    if (keypoint_name != m_keypoint_names.back()) {
+      keypoint_names_str += ", ";
+    }
+  }
+  RCLCPP_INFO(get_logger(), "Selected keypoint names: %s", keypoint_names_str.c_str());
+  
   // Parameterize the tracking window dimensions
   this->declare_parameter("tracking_window_width", 0.1);
   this->declare_parameter("tracking_window_height", 0.1);
@@ -169,10 +146,10 @@ void SingleKeypointTrackerNode::configureParameters()
     m_tracking_window_width, m_tracking_window_height);
 }
 
-int main(int argc, char * argv[])
+int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<SingleKeypointTrackerNode>());
+  rclcpp::spin(std::make_shared<MultipleKeypointsTrackerNode>());
   rclcpp::shutdown();
   return 0;
 }
