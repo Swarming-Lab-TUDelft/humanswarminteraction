@@ -28,7 +28,7 @@ namespace HumanSwarmInteraction
     private:
       void timerCallback();
       void keypointsCallback(const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg);
-      void publishKeypoints() const;
+      void publishKeypoints(const std::vector<std::array<double,OUTPUT_SIZE>>& centroids) const;
 
       void initializeKalmanFilters();
       void initializeKeyPointsSubscriber();

@@ -54,6 +54,8 @@ namespace HumanSwarmInteraction
     void setInitialState(const double& x, const double& y, const double& w, const double& h,
       const double& vx, const double& vy, const double& vw, const double& vh);
 
+    bool isInitialized() const;
+
   private:
     void initializeStateTransitionMatrix(const double& dt);
     void initializeObservationMatrix();
@@ -67,6 +69,8 @@ namespace HumanSwarmInteraction
     void initializeCovarianceMatrix(const std::vector<double>& covariances);
     void initializeProcessNoiseMatrix(const std::vector<double>& process_noises);
     void initializeObservationNoiseMatrix(const std::vector<double>& observation_noises);
+
+    bool m_initialized = false;
 
     Eigen::VectorXd m_x;
     Eigen::MatrixXd m_P;

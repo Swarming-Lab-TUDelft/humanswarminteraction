@@ -75,8 +75,13 @@ void LinearKalmanFilter::setInitialState(const double& x, const double& y, const
   m_x(STATE_VERTICAL_CENTROID_VELOCITY) = vy;
   m_x(STATE_TRACKING_WINDOW_WIDTH_VELOCITY) = vw;
   m_x(STATE_TRACKING_WINDOW_HEIGHT_VELOCITY) = vh;
-
   m_P = Eigen::MatrixXd::Identity(STATE_SIZE, STATE_SIZE) * 1.0;
+  m_initialized = true;
+}
+
+bool LinearKalmanFilter::isInitialized() const
+{
+  return m_initialized;
 }
 
 void LinearKalmanFilter::initializeStateTransitionMatrix(const double& dt)

@@ -25,7 +25,16 @@ MultipleKeypointsTrackerNode::~MultipleKeypointsTrackerNode()
 
 void MultipleKeypointsTrackerNode::timerCallback()
 {
-  // TODO: Implement timer callback
+  // Get the centroids of the Kalman filters
+  std::vector<std::array<double, OUTPUT_SIZE>> centroids;
+  for (const auto& keypoint_name : m_keypoint_names) {
+    // Skip if the Kalman filter has not been initialized yet
+    if (!m_kalman_filters[keypoint_name]->isInitialized()) {
+      continue;
+    }
+    centroids.push_back(m_kalman_filters[keypoint_name]->getCentroidCoordinate());
+  }
+  publishKeypoints(centroids);
 }
 
 void MultipleKeypointsTrackerNode::keypointsCallback(
@@ -34,9 +43,22 @@ void MultipleKeypointsTrackerNode::keypointsCallback(
   // TODO: Implement keypoints callback
 }
 
-void MultipleKeypointsTrackerNode::publishKeypoints() const
+void MultipleKeypointsTrackerNode::publishKeypoints(
+  const std::vector<std::array<double,OUTPUT_SIZE>>& centroids) const
 {
-  // TODO: Implement publish keypoints
+  human_swarm_interaction_interfaces::msg::PoseKeypointsStamped msg;
+  msg.header.stamp = this->now();
+  msg.header.frame_id = "camera_link";  // TODO: Should get this from the input message
+
+  for (size_t i = 0; i < centroids.size(); i++) {
+    human_swarm_interaction_interfaces::msg::PoseKeypoint keypoint;
+    keypoint.name = m_keypoint_names[i];
+    keypoint.x = centroids[i][0];
+    keypoint.y = centroids[i][1];
+    msg.keypoints.push_back(keypoint);
+  }
+
+  m_keypoints_pub->publish(msg);
 }
 
 void MultipleKeypointsTrackerNode::initializeKalmanFilters()
