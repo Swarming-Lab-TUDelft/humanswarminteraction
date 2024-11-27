@@ -19,6 +19,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(human_swarm_interaction_interfaces REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(eigen3_cmake_module REQUIRED)
@@ -37,6 +38,7 @@ target_include_directories(single_keypoint_tracking_node PUBLIC
 ament_target_dependencies(single_keypoint_tracking_node
   rclcpp
   std_msgs
+  sensor_msgs
   human_swarm_interaction_interfaces
   Eigen3
 )
@@ -54,6 +56,7 @@ target_include_directories(multiple_keypoints_tracking_node PUBLIC
 ament_target_dependencies(multiple_keypoints_tracking_node
   rclcpp
   std_msgs
+  sensor_msgs
   human_swarm_interaction_interfaces
   Eigen3
 )

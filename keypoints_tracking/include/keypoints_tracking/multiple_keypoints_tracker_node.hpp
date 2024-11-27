@@ -9,6 +9,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/header.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <human_swarm_interaction_interfaces/msg/pose_keypoints_stamped.hpp>
 
 #include <vector>
@@ -27,10 +28,12 @@ namespace HumanSwarmInteraction
 
     private:
       void timerCallback();
+      void imageCallback(const sensor_msgs::msg::Image::SharedPtr msg);
       void keypointsCallback(const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg);
       void publishKeypoints(const std::vector<std::array<double,OUTPUT_SIZE>>& centroids) const;
 
       void initializeKalmanFilters();
+      void initializeImageSubscriber();
       void initializeKeyPointsSubscriber();
       void initializeKeyPointsPublisher();
       void configureParameters();
@@ -41,6 +44,7 @@ namespace HumanSwarmInteraction
       double m_tracking_window_height;
 
       rclcpp::TimerBase::SharedPtr m_timer;
+      rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr m_image_sub;
       rclcpp::Subscription<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>::SharedPtr m_keypoints_sub;
       rclcpp::Publisher<human_swarm_interaction_interfaces::msg::PoseKeypointsStamped>::SharedPtr m_keypoints_pub;
 

@@ -18,5 +18,5 @@ multiple_keypoints_tracking_node:
 
     initial_state: [0.5, 0.5, 0.2, 0.2, 0.0, 0.0, 0.0, 0.0]
     covariances: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
-    process_noises: [1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2, 1e-2]
-    observation_noises: [5e-3, 5e-3, 1e-3, 1e-3]
+    process_noises: [1e-5, 1e-5, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3, 1e-3]
+    observation_noises: [1e-1, 1e-1, 1e-2, 1e-2]

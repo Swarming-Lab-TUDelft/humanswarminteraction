@@ -37,10 +37,50 @@ void MultipleKeypointsTrackerNode::timerCallback()
   publishKeypoints(centroids);
 }
 
+void MultipleKeypointsTrackerNode::imageCallback(const sensor_msgs::msg::Image::SharedPtr msg)
+{
+  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 5000, "Received image message.");
+  std::vector<std::array<double, OUTPUT_SIZE>> centroids;
+  for (const auto& keypoint_name : m_keypoint_names) {
+    if (!m_kalman_filters[keypoint_name]->isInitialized()) {
+      continue;
+    }
+    centroids.push_back(m_kalman_filters[keypoint_name]->getCentroidCoordinate());
+  }
+  publishKeypoints(centroids);
+}
+
 void MultipleKeypointsTrackerNode::keypointsCallback(
   const human_swarm_interaction_interfaces::msg::PoseKeypointsStamped::SharedPtr msg)
 {
-  // TODO: Implement keypoints callback
+  RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 5000, "Received keypoints message.");
+  try {
+    for (auto& keypoint : msg->keypoints) {
+      // Skip if the keypoint is not in the list of keypoint names
+      if (std::find(m_keypoint_names.begin(), m_keypoint_names.end(), keypoint.name) == m_keypoint_names.end()) {
+        continue;
+      }
+
+      // Skip if the keypoint confidence is below a threshold
+      if (keypoint.confidence < 0.5) {
+        continue;
+      }
+
+      double width = m_tracking_window_width * keypoint.confidence;
+      double height = m_tracking_window_height * keypoint.confidence;
+
+      if (m_kalman_filters[keypoint.name]->isInitialized()) {
+        m_kalman_filters[keypoint.name]->predict();
+        m_kalman_filters[keypoint.name]->update(keypoint.x, keypoint.y, width, height);
+      } else {
+        m_kalman_filters[keypoint.name]->setInitialState(
+          keypoint.x, keypoint.y, width, height, 0.0, 0.0, 0.0, 0.0);
+      }
+    }
+  } catch (const std::exception& e) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, 
+      "Error in keypoint tracking: %s", e.what());
+  }
 }
 
 void MultipleKeypointsTrackerNode::publishKeypoints(
@@ -110,6 +150,21 @@ void MultipleKeypointsTrackerNode::initializeKalmanFilters()
   }
 
   RCLCPP_INFO(get_logger(), "Kalman filters initialized for %d keypoints", m_kalman_filters.size());
+}
+
+void MultipleKeypointsTrackerNode::initializeImageSubscriber()
+{
+  this->declare_parameter("input_image_topic_name", "image_raw");
+  this->declare_parameter("input_image_topic_queue_size", 10);
+
+  std::string input_image_topic_name = this->get_parameter("input_image_topic_name").as_string();
+  int input_image_topic_queue_size = this->get_parameter("input_image_topic_queue_size").as_int();
+  RCLCPP_INFO(get_logger(), "Subscribing to topic: %s with queue size: %d", 
+    input_image_topic_name.c_str(), input_image_topic_queue_size);
+
+  m_image_sub = this->create_subscription<sensor_msgs::msg::Image>(
+    input_image_topic_name, input_image_topic_queue_size, 
+    std::bind(&MultipleKeypointsTrackerNode::imageCallback, this, std::placeholders::_1));
 }
 
 void MultipleKeypointsTrackerNode::initializeKeyPointsSubscriber()
